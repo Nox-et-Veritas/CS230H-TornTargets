@@ -1,0 +1,6 @@
+For this week's assignment, I wrote a helper function that lets me target specific bit ranges in an u128 which I have designated to represent my system's state. The integer is a u128 since I wanted to encode an API key in my system and the way I chose to encode the API key requires at least 96 bits (Note that for security, this is not what will happen in the final version, it will likely be an env variable or stored with encryption). The "key" variable in my code is a randomly generated sequence of 16 letters/numbers with the same valid characters as a Torn API key, but is not a real key to my knowledge. 
+
+Currently, the designation of my bits is as follows:
+
+Bit 0: endianness - 1 = big-endian, 0 for little-endian
+Bits 1-96: represent the API key encoded as binary from base-62 (there are 62 valid characters in a Torn API key, and since the key is of length 16, there are 96 bits required)

@@ -11,7 +11,7 @@ fn main() {
 }
 
 fn get_key(system: &u128) -> String {
-    return convert_u128_to_key(extract_bits(system, 1, 96));
+    return convert_u128_to_key(system, extract_bits(system, 1, 96));
 }
 
 const KEY_CHARACTERS: [char; 62] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
@@ -33,7 +33,7 @@ fn convert_key_to_u128(key: String) -> u128 {
     return return_value;
 }
 
-fn convert_u128_to_key(data: u128) -> String {
+fn convert_u128_to_key(system: &u128, data: u128) -> String {
     let mut return_string = String::from("");
     let mut input_data = data;
     while input_data > 0 {
@@ -42,7 +42,11 @@ fn convert_u128_to_key(data: u128) -> String {
         let remainder_usize: usize = remainder.try_into().unwrap(); 
         return_string.push(KEY_CHARACTERS[remainder_usize]);
     }
-    return return_string.chars().rev().collect();
+    if endianness(system) == 1 {
+        return_string = return_string.chars().rev().collect();
+    } 
+    return return_string;
+
 }
 
 fn extract_bits(system: &u128, start_bit: u32, end_bit: u32) -> u128{
