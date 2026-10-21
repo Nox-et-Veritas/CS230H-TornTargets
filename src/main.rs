@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use rand::RngExt;
 
 const API_KEY_CHARACTERS: [char; 62] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
@@ -5,20 +6,17 @@ const API_KEY_CHARACTERS: [char; 62] = ['0', '1', '2', '3', '4', '5', '6', '7', 
 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
 /// Each Attacker has their own API key, retrieved from the state variable
-struct Attacker {
-    state: u128,
-    key: String,
-    attacks: i32,
+/// its lifetime is tied to that of its state variable
+struct Attacker<'lifetime_state> {
+    state: &'lifetime_state mut u128,
 }
 
-/// Factions can contain up to 100 Attackers, so are parametrized as such
-struct Faction<Attacker> {
-    users: [Attacker; 100],
-    best_attacker: Attacker,
-    total_attacks: i32,
+/// Factions can contain up to 100 Attackers, so are parameterized as such
+/// its lifetime is tied to those of its Attackers and consequently, their state variables
+struct Faction<'lifetime_state> {
+    users: [Attacker<'lifetime_state>; 100],
+    best_attacker: Attacker<'lifetime_state>,
 }
-
-
 
 /// gets the state bits from index start_bit to index end_bit
 fn get_state_bits(state: &u128, start_bit: u32, end_bit: u32) -> u128{
@@ -69,6 +67,17 @@ fn set_state_attacks(state: &mut u128, num_attacks: u128) -> () {
     set_state_bits(state, 97, 109, num_attacks);
 }
 
+/// increases state attacks by given number
+fn increase_state_attacks_by(state: &mut u128, num_attacks: u128) -> () {
+    set_state_bits(state, 97, 109, get_state_attacks(state) + num_attacks);
+}
+
+/// decreases state attacks by given number
+fn decrease_state_attacks_by(state: &mut u128, num_attacks: u128) -> () {
+    set_state_bits(state, 97, 109, get_state_attacks(state) - num_attacks);
+}
+
+
 /// generates a random string in the format of a Torn API key for testing purposes
 fn generate_random_api_key() -> String {
     let mut api_key = String::from("");
@@ -110,6 +119,18 @@ fn convert_u128_to_api_key(state: &u128, data: u128) -> String {
         return_string = return_string.chars().rev().collect();
     } 
     return return_string;
+}
+
+// impl<'state> declares that 'state lifetime will be used in this scope
+// Attacker<'state> applies 'state lifetime to the Attacker struct
+
+impl<'lifetime_state> Attacker<'lifetime_state> {
+    /// constructor for new Attacker given a state u128
+    fn new_attacker(attacker_state: &'lifetime_state mut u128) -> Self {
+        Self {
+            state: attacker_state,
+        }
+    }
 
 }
 
@@ -118,7 +139,11 @@ fn main() {
 
     let mut attacker_state: u128 = 1; // initialization at 1 sets endianness to big endian
     set_state_bits(&mut attacker_state, 1, 97, convert_api_key_to_u128(&api_key));
-    println!("{}", get_state_bits(&attacker_state, 1, 97));
+    println!("{}", get_state_attacks(&attacker_state));
+    increase_state_attacks_by(&mut attacker_state, 7);
+    println!("{}", get_state_attacks(&attacker_state));
+    increase_state_attacks_by(&mut attacker_state, 71);
+    println!("{}", get_state_attacks(&attacker_state));
 
     println!("{}", &api_key);
     println!("{}", convert_api_key_to_u128(&api_key));
