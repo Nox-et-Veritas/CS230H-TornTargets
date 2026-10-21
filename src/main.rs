@@ -1,21 +1,23 @@
 #![allow(dead_code)]
+
+// looked this up, used in generate_random_api_key()
 use rand::RngExt;
 
-const API_KEY_CHARACTERS: [char; 62] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+const API_KEY_CHARSET: [char; 62] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
 /// Each Attacker has their own API key, retrieved from the state variable
-/// its lifetime is tied to that of its state variable
-struct Attacker<'lifetime_state> {
-    state: &'lifetime_state mut u128,
+// its lifetime is tied to that of its state variable
+struct Attacker<'state_lifetime> {
+    state: &'state_lifetime mut u128,
 }
 
 /// Factions can contain up to 100 Attackers, so are parameterized as such
-/// its lifetime is tied to those of its Attackers and consequently, their state variables
-struct Faction<'lifetime_state> {
-    users: [Attacker<'lifetime_state>; 100],
-    best_attacker: Attacker<'lifetime_state>,
+// its lifetime is tied to those of its Attackers and consequently, their state variables
+struct Faction<'state_lifetime> {
+    users: [Attacker<'state_lifetime>; 100],
+    best_attacker: Attacker<'state_lifetime>,
 }
 
 /// gets the state bits from index start_bit to index end_bit
@@ -84,7 +86,7 @@ fn generate_random_api_key() -> String {
     let mut rng = rand::rng();
     for _api_key_index in 0..16 {
         let random_index = rng.random_range(0..62);
-        api_key.push_str(&String::from(API_KEY_CHARACTERS[random_index]));
+        api_key.push_str(&String::from(API_KEY_CHARSET[random_index]));
     }
     return String::from(api_key);
 }
@@ -94,7 +96,7 @@ fn convert_api_key_to_u128(key: &String) -> u128 {
     let mut return_value: u128 = 0;
     for key_char in key.chars() {
         for api_key_character_index in 0..62 {
-            if API_KEY_CHARACTERS[api_key_character_index] == key_char {
+            if API_KEY_CHARSET[api_key_character_index] == key_char {
                 return_value *= 62;
                 let added_value: u128 = api_key_character_index.try_into().unwrap();
                 return_value += added_value;
@@ -112,8 +114,9 @@ fn convert_u128_to_api_key(state: &u128, data: u128) -> String {
     while input_data > 0 {
         let remainder: u128 = input_data % 62;
         input_data /= 62;
+        // as usize size also works (probably), .try_into().unwrap() was what Rust compiler said would work
         let remainder_usize: usize = remainder.try_into().unwrap(); 
-        return_string.push(API_KEY_CHARACTERS[remainder_usize]);
+        return_string.push(API_KEY_CHARSET[remainder_usize]);
     }
     if get_state_endianness(state) == 1 {
         return_string = return_string.chars().rev().collect();
@@ -124,9 +127,9 @@ fn convert_u128_to_api_key(state: &u128, data: u128) -> String {
 // impl<'state> declares that 'state lifetime will be used in this scope
 // Attacker<'state> applies 'state lifetime to the Attacker struct
 
-impl<'lifetime_state> Attacker<'lifetime_state> {
+impl<'state_lifetime> Attacker<'state_lifetime> {
     /// constructor for new Attacker given a state u128
-    fn new_attacker(attacker_state: &'lifetime_state mut u128) -> Self {
+    fn create_attacker_with_state(attacker_state: &'state_lifetime mut u128) -> Self {
         Self {
             state: attacker_state,
         }
